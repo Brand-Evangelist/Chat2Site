@@ -1,0 +1,6 @@
+{
+  "name": "chat2site-api",
+  "version": "1.0.0",
+  "description": "URL builder for Chat2Site GPT",
+  "private": true
+}
