@@ -1,4 +1,9 @@
+import { injectSpeedInsights } from '@vercel/speed-insights';
+
 export default function handler(req, res) {
+  // Inject Vercel Speed Insights for serverless function tracking
+  injectSpeedInsights();
+  
   // Enable CORS so ChatGPT can call this
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');

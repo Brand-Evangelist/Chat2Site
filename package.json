@@ -4,6 +4,7 @@
   "description": "URL builder for Chat2Site GPT",
   "private": true,
   "dependencies": {
-    "@vercel/analytics": "^1.6.1"
+    "@vercel/analytics": "^1.6.1",
+    "@vercel/speed-insights": "^1.0.0"
   }
 }
