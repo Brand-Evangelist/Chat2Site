@@ -1,6 +1,6 @@
-# Chat2Site — by Brand Evangelist™
+# Chat2Site — by Brand Evangelist
 
-AI-powered website builder built on Claude. Users answer 5 questions and get a custom Lovable.dev site in minutes.
+AI-powered website + product builder built on Claude. Users answer 5 questions and get a custom Lovable.dev site in minutes.
 
 ## Stack
 - **Frontend:** Next.js (React)
