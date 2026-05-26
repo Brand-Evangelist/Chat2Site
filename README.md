@@ -88,4 +88,4 @@ chat2site/
 
 ---
 
-Built with ❤️ by [Brand Evangelist™](https://brandevangelist.io)
+Built with ❤️ by [Brand Evangelist](https://brandevangelist.io)
