@@ -2,19 +2,30 @@ import { useState, useRef, useEffect } from "react";
 import Head from "next/head";
 import styles from "../styles/Home.module.css";
 
+const STARTERS = [
+  { emoji: "🚀", text: "Landing page for my business" },
+  { emoji: "💡", text: "Build a working SaaS prototype" },
+  { emoji: "🏆", text: "Design my blog or portfolio site" },
+  { emoji: "🎯", text: "Create an internal dashboard" },
+];
+
 function extractLovableUrl(text) {
   const match = text.match(/```lovable-url\s*([\s\S]*?)```/);
   if (!match) return null;
   try {
     const { prompt } = JSON.parse(match[1].trim());
     return `https://lovable.dev/create?prompt=${encodeURIComponent(prompt)}`;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 function cleanMessage(text) {
   return text.replace(/```lovable-url[\s\S]*?```/g, "").trim();
+}
+
+function formatText(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\n/g, "<br/>");
 }
 
 function MessageBubble({ message }) {
@@ -23,35 +34,25 @@ function MessageBubble({ message }) {
   const displayText = !isUser ? cleanMessage(message.content) : message.content;
 
   return (
-    <div className={`${styles.messageBubble} ${isUser ? styles.userBubble : styles.assistantBubble}`}>
-      {!isUser && (
-        <div className={styles.avatar}>C2S</div>
+    <div className={`${styles.messageBubble} ${isUser ? styles.userBubble : ""}`}>
+      {!isUser ? (
+        <div className={styles.avatar}>
+          <img src="/avatar.png" alt="Chat2Site" />
+        </div>
+      ) : (
+        <div className={`${styles.avatar} ${styles.userAvatar}`}>You</div>
       )}
       <div className={styles.bubbleContent}>
         <div
           className={styles.bubbleText}
-          dangerouslySetInnerHTML={{
-            __html: displayText
-              .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-              .replace(/\*(.*?)\*/g, "<em>$1</em>")
-              .replace(/\n/g, "<br/>")
-              .replace(/- (.*?)(<br\/>|$)/g, "<li>$1</li>")
-          }}
+          dangerouslySetInnerHTML={{ __html: formatText(displayText) }}
         />
         {lovableUrl && (
-          <a
-            href={lovableUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.lovableButton}
-          >
+          <a href={lovableUrl} target="_blank" rel="noopener noreferrer" className={styles.lovableButton}>
             🚀 Build My Website Now
           </a>
         )}
       </div>
-      {isUser && (
-        <div className={`${styles.avatar} ${styles.userAvatar}`}>You</div>
-      )}
     </div>
   );
 }
@@ -61,31 +62,24 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [streamingText, setStreamingText] = useState("");
+  const [theme, setTheme] = useState("light");
+  const [started, setStarted] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  const hasStarted = useRef(false);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingText]);
 
-  useEffect(() => {
-    if (!hasStarted.current) {
-      hasStarted.current = true;
-      sendMessage("", true);
-    }
-  }, []);
-
-  async function sendMessage(userText, isInit = false) {
-    const newMessages = isInit
-      ? [{ role: "user", content: "Hello! I need a website." }]
-      : [...messages, { role: "user", content: userText }];
-
-    if (!isInit) {
-      setMessages(newMessages);
-      setInput("");
-    }
-
+  async function sendMessage(userText) {
+    const newMessages = [...messages, { role: "user", content: userText }];
+    setMessages(newMessages);
+    setInput("");
+    setStarted(true);
     setIsLoading(true);
     setStreamingText("");
 
@@ -105,11 +99,8 @@ export default function Home() {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
         const chunk = decoder.decode(value);
-        const lines = chunk.split("\n");
-
-        for (const line of lines) {
+        for (const line of chunk.split("\n")) {
           if (line.startsWith("data: ")) {
             const data = line.slice(6);
             if (data === "[DONE]") break;
@@ -124,22 +115,10 @@ export default function Home() {
         }
       }
 
-      const assistantMessage = { role: "assistant", content: fullText };
-      const updatedMessages = isInit
-        ? [assistantMessage]
-        : [...newMessages, assistantMessage];
-
-      setMessages(updatedMessages);
+      setMessages([...newMessages, { role: "assistant", content: fullText }]);
       setStreamingText("");
-    } catch (error) {
-      console.error("Error:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Oops! Something went wrong. Please try again.",
-        },
-      ]);
+    } catch {
+      setMessages([...newMessages, { role: "assistant", content: "Something went wrong. Please try again!" }]);
       setStreamingText("");
     } finally {
       setIsLoading(false);
@@ -164,78 +143,101 @@ export default function Home() {
     <>
       <Head>
         <title>Chat2Site — Build your website in minutes</title>
-        <meta name="description" content="Chat2Site by Brand Evangelist — get a professional website in under 5 minutes through conversation." />
-        <link rel="icon" href="/favicon.ico" />
+        <meta name="description" content="5 questions, zero guesswork. Get a premium website instantly." />
       </Head>
 
       <main className={styles.main}>
         <header className={styles.header}>
-          <div className={styles.logo}>
+          <div className={styles.headerLeft}>
             <span className={styles.logoMark}>C2S</span>
             <span className={styles.logoText}>Chat2Site</span>
           </div>
-          <span className={styles.badge}>by Brand Evangelist™</span>
+          <div className={styles.headerRight}>
+            <span className={styles.badge}>by Brand Evangelist™</span>
+            <button
+              className={styles.toggleButton}
+              onClick={() => setTheme(t => t === "light" ? "dark" : "light")}
+              aria-label="Toggle theme"
+            >
+              {theme === "light" ? "🌙 Dark" : "☀️ Light"}
+            </button>
+          </div>
         </header>
 
-        <div className={styles.chatContainer}>
-          <div className={styles.messageList}>
-            {messages.map((msg, i) => (
-              <MessageBubble key={i} message={msg} />
-            ))}
-
-            {streamingText && (
-              <div className={`${styles.messageBubble} ${styles.assistantBubble}`}>
-                <div className={styles.avatar}>C2S</div>
-                <div className={styles.bubbleContent}>
-                  <div
-                    className={styles.bubbleText}
-                    dangerouslySetInnerHTML={{
-                      __html: streamingText
-                        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                        .replace(/\*(.*?)\*/g, "<em>$1</em>")
-                        .replace(/\n/g, "<br/>")
-                    }}
-                  />
-                  <span className={styles.cursor}>▌</span>
-                </div>
-              </div>
-            )}
-
-            {isLoading && !streamingText && (
-              <div className={`${styles.messageBubble} ${styles.assistantBubble}`}>
-                <div className={styles.avatar}>C2S</div>
-                <div className={styles.bubbleContent}>
-                  <div className={styles.typing}>
-                    <span /><span /><span />
+        {!started ? (
+          <div className={styles.welcome}>
+            <div className={styles.avatarWrap}>
+              <img src="/avatar.png" alt="Chat2Site" />
+            </div>
+            <h1 className={styles.welcomeTitle}>Chat2Site</h1>
+            <p className={styles.welcomeSubtitle}>
+              Co-work your idea with our CMO-AI, choose features, and deploy to Lovable in minutes. 5 questions, zero guesswork — get a premium site with no hiring and no tech skills required.
+            </p>
+            <div className={styles.starters}>
+              {STARTERS.map((s) => (
+                <button
+                  key={s.text}
+                  className={styles.starterBtn}
+                  onClick={() => sendMessage(s.text)}
+                >
+                  <span className={styles.starterEmoji}>{s.emoji}</span>
+                  {s.text}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className={styles.chatContainer}>
+            <div className={styles.messageList}>
+              {messages.map((msg, i) => (
+                <MessageBubble key={i} message={msg} />
+              ))}
+              {streamingText && (
+                <div className={styles.messageBubble}>
+                  <div className={styles.avatar}>
+                    <img src="/avatar.png" alt="Chat2Site" />
+                  </div>
+                  <div className={styles.bubbleContent}>
+                    <div
+                      className={styles.bubbleText}
+                      dangerouslySetInnerHTML={{ __html: formatText(streamingText) }}
+                    />
+                    <span className={styles.cursor}>▌</span>
                   </div>
                 </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
+              )}
+              {isLoading && !streamingText && (
+                <div className={styles.messageBubble}>
+                  <div className={styles.avatar}>
+                    <img src="/avatar.png" alt="Chat2Site" />
+                  </div>
+                  <div className={styles.bubbleContent}>
+                    <div className={styles.typing}>
+                      <span /><span /><span />
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
           </div>
+        )}
 
-          <form className={styles.inputForm} onSubmit={handleSubmit}>
-            <textarea
-              ref={inputRef}
-              className={styles.input}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Type your answer here..."
-              rows={1}
-              disabled={isLoading}
-            />
-            <button
-              type="submit"
-              className={styles.sendButton}
-              disabled={isLoading || !input.trim()}
-              aria-label="Send message"
-            >
-              →
-            </button>
-          </form>
-        </div>
+        <form className={styles.inputForm} onSubmit={handleSubmit}>
+          <textarea
+            ref={inputRef}
+            className={styles.input}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Type your answer here..."
+            rows={1}
+            disabled={isLoading}
+          />
+          <button type="submit" className={styles.sendButton} disabled={isLoading || !input.trim()} aria-label="Send">
+            →
+          </button>
+        </form>
 
         <footer className={styles.footer}>
           Powered by <a href="https://brandevangelist.io" target="_blank" rel="noopener noreferrer">Brand Evangelist™</a> &amp; Claude AI
